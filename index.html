@@ -1,0 +1,765 @@
+<title>Črkarija</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Fredoka:wght@400;500;600&display=swap">
+<style>
+/* Layout: papirnata aplikacija z zgornjo vrstico, eno aktivnostjo naenkrat in spodnjo vrstico zavihkov.
+   Barvna koda iz šolskih zvezkov: samoglasniki rdeče, soglasniki modro. */
+:root{
+  --paper:#F2F6FB; --card:#FFFFFF; --ink:#14304F; --muted:#566C86; --rule:#C9DBEE;
+  --vowel:#E5484D; --vowel-soft:#FDE6E7; --cons:#2D6BDF; --cons-soft:#E2ECFD;
+  --star:#F5B301; --good:#1B9A5E; --good-soft:#D9F3E6;
+  --guide:#CFE0F5; --guide-edge:#92B0D3; --chip-a:#E4EBF6; --chip-b:#D3DDED;
+  --shadow:rgba(20,48,79,.16);
+  --font-ui:"Fredoka","Chalkboard SE","Trebuchet MS",system-ui,sans-serif;
+  --font-letter:"Andika","Chalkboard SE","Comic Sans MS","Trebuchet MS",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F1B2A; --card:#19293D; --ink:#E7F0FB; --muted:#98ADC5; --rule:#2A4160;
+    --vowel:#FF7C80; --vowel-soft:#3B2431; --cons:#7BADFF; --cons-soft:#1F3557;
+    --star:#FFCB45; --good:#4CD08D; --good-soft:#17382B;
+    --guide:#2B4466; --guide-edge:#4F73A2; --chip-a:#223550; --chip-b:#2E4566;
+    --shadow:rgba(0,0,0,.4); color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F1B2A; --card:#19293D; --ink:#E7F0FB; --muted:#98ADC5; --rule:#2A4160;
+  --vowel:#FF7C80; --vowel-soft:#3B2431; --cons:#7BADFF; --cons-soft:#1F3557;
+  --star:#FFCB45; --good:#4CD08D; --good-soft:#17382B;
+  --guide:#2B4466; --guide-edge:#4F73A2; --chip-a:#223550; --chip-b:#2E4566;
+  --shadow:rgba(0,0,0,.4); color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{height:100%;touch-action:manipulation}
+body{
+  height:100%;margin:0;overflow:hidden;background:var(--paper);color:var(--ink);
+  font-family:var(--font-ui);font-size:18px;
+  padding-block:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+  -webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;
+}
+button{font:inherit;color:inherit;-webkit-appearance:none;appearance:none;border:0;background:none;padding:0;cursor:pointer;touch-action:manipulation}
+button:disabled{cursor:default}
+:focus-visible{outline:3px solid var(--cons);outline-offset:3px}
+.ic{width:24px;height:24px;flex:none;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ic.fill{fill:currentColor;stroke:none}
+.vc[data-v="1"]{color:var(--vowel)}
+.vc[data-v="0"]{color:var(--cons)}
+
+#app{height:100%;display:flex;flex-direction:column;gap:10px;padding-block:10px}
+
+/* Zgornja vrstica */
+.top{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px}
+.brand{margin:0;display:flex;font:600 clamp(28px,4.4vw,40px)/1 var(--font-ui);letter-spacing:.01em}
+.brand .v{color:var(--vowel)}
+.brand .k{color:var(--cons)}
+.tools{display:flex;align-items:center;gap:10px}
+.iconbtn{width:52px;height:52px;border-radius:50%;background:var(--card);box-shadow:0 3px 0 var(--shadow);display:grid;place-items:center;flex:none}
+.iconbtn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--shadow)}
+.stars{display:flex;align-items:center;gap:8px;height:52px;padding:0 18px 0 14px;border-radius:999px;background:var(--card);box-shadow:0 3px 0 var(--shadow);font:600 24px var(--font-ui);font-variant-numeric:tabular-nums}
+.stars .ic{width:28px;height:28px;color:var(--star)}
+.stars.pop{animation:pop .5s}
+
+/* Stage */
+#stage{flex:1;min-height:0;position:relative}
+.view{position:absolute;inset:0;overflow:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch}
+
+/* Zavihki */
+.tabs{flex:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:8px;background:var(--card);border-radius:28px;box-shadow:0 3px 0 var(--shadow)}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:64px;padding:6px 4px;border-radius:20px;color:var(--muted);font:500 16px var(--font-ui)}
+.tab .ic{width:30px;height:30px}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+
+/* Gumbi */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:10px 22px;border-radius:999px;background:var(--card);color:var(--ink);box-shadow:0 3px 0 var(--shadow);font:500 18px var(--font-ui)}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--shadow)}
+.btn.primary{background:var(--ink);color:var(--paper)}
+.btn .ic{width:22px;height:22px}
+.actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+
+/* ČRKE */
+.letters{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-content:start}
+.lcard{background:var(--card);border-radius:28px;box-shadow:0 4px 0 var(--shadow);padding:clamp(12px,2.4vh,24px);display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:clamp(6px,1.5vh,16px);text-align:center;min-height:0}
+.lkind{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;background:var(--paper);font:500 15px var(--font-ui);color:var(--muted)}
+.lkind i{width:10px;height:10px;border-radius:50%;background:var(--cons)}
+.lkind[data-v="1"] i{background:var(--vowel)}
+.lglyph{font:700 clamp(84px,19vh,190px)/1 var(--font-letter);letter-spacing:.02em}
+.lpic{font-size:clamp(56px,11vh,104px);line-height:1}
+.lword{font:700 clamp(34px,6vh,52px)/1.1 var(--font-letter)}
+.lrow{display:flex;align-items:center;gap:12px}
+.lgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;align-content:start}
+.ltile{aspect-ratio:1;border-radius:18px;display:grid;place-items:center;font:700 clamp(28px,5.2vw,46px)/1 var(--font-letter);box-shadow:0 3px 0 var(--shadow);transition:transform .1s}
+.ltile:active{transform:translateY(2px)}
+.ltile[data-v="1"]{background:var(--vowel-soft);color:var(--vowel)}
+.ltile[data-v="0"]{background:var(--cons-soft);color:var(--cons)}
+.ltile[aria-pressed="true"][data-v="1"]{background:var(--vowel);color:var(--paper)}
+.ltile[aria-pressed="true"][data-v="0"]{background:var(--cons);color:var(--paper)}
+@media (min-width:760px) and (orientation:landscape){
+  .letters{grid-template-columns:minmax(300px,5fr) minmax(0,6fr);height:100%;align-content:stretch}
+  .lgrid{height:100%;grid-template-rows:repeat(5,minmax(0,1fr))}
+  .ltile{aspect-ratio:auto}
+}
+
+/* PIŠI */
+.write{display:flex;flex-direction:column;gap:12px}
+.wbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.seg{display:inline-flex;padding:4px;border-radius:999px;background:var(--card);box-shadow:0 2px 0 var(--shadow)}
+.seg button{min-height:46px;padding:8px 20px;border-radius:999px;color:var(--muted);font:500 17px var(--font-ui)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.tnav{display:flex;align-items:center;gap:8px}
+.tlabel{display:flex;align-items:center;justify-content:center;gap:10px;min-width:170px;font:700 30px var(--font-letter)}
+.tpic{font-size:36px;line-height:1}
+.wact{display:flex;gap:10px}
+.board{position:relative;flex:1;min-height:250px;background:var(--card);border-radius:28px;box-shadow:0 4px 0 var(--shadow);overflow:hidden}
+.board canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#ink{touch-action:none;cursor:crosshair}
+.meter{position:absolute;top:12px;right:14px;display:flex;gap:2px;pointer-events:none}
+.meter .ic{width:36px;height:36px;color:var(--rule);transition:color .2s,transform .2s}
+.meter .ic.on{color:var(--star);transform:scale(1.15)}
+.wstatus{flex:none;margin:0;min-height:1.5em;text-align:center;color:var(--muted);font:500 17px var(--font-ui)}
+.nudge{animation:ring 1s ease-out 4}
+
+/* SESTAVI */
+.build{--tile:clamp(52px,9vw,84px);display:flex;flex-direction:column;align-items:center;gap:clamp(14px,3vh,26px);max-width:860px;margin:0 auto;padding-top:4px}
+.bpic{position:relative;width:clamp(120px,22vh,190px);aspect-ratio:1;border-radius:34px;background:var(--card);box-shadow:0 4px 0 var(--shadow);display:grid;place-items:center;font-size:clamp(70px,14vh,120px);line-height:1}
+.bhear{position:absolute;right:8px;bottom:8px;width:38px;height:38px;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center}
+.bhear .ic{width:20px;height:20px}
+.slots,.tiles{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.slot,.tile{width:var(--tile);height:calc(var(--tile)*1.15);border-radius:16px;display:grid;place-items:center;font:700 calc(var(--tile)*.62)/1 var(--font-letter)}
+.slot{border:3px dashed var(--rule)}
+.slot.filled{border-color:transparent;background:var(--card);box-shadow:0 3px 0 var(--shadow)}
+.slot.pop{animation:pop .3s}
+.slot.hop{animation:hop .6s ease-in-out 2}
+.tile{background:var(--card);box-shadow:0 4px 0 var(--shadow)}
+.tile:active{transform:translateY(2px);box-shadow:0 2px 0 var(--shadow)}
+.tile.used{visibility:hidden}
+.tile.shake,.choice.shake{animation:shake .4s}
+.tile.hint{animation:ring 1s ease-out infinite}
+
+/* BERI */
+.read{display:flex;flex-direction:column;align-items:center;gap:clamp(12px,2.6vh,22px);max-width:900px;margin:0 auto;padding-top:4px}
+.rtop{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;width:100%}
+.rword{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px;min-height:clamp(96px,18vh,150px);padding:10px clamp(16px,3vw,32px);border-radius:28px;background:var(--card);box-shadow:0 4px 0 var(--shadow);font:700 clamp(54px,10vw,110px)/1.1 var(--font-letter);max-width:100%}
+.rword .syl{padding:0 .12em;border-radius:.22em}
+.rword[data-syl="1"] .syl:nth-child(odd){background:var(--chip-a)}
+.rword[data-syl="1"] .syl:nth-child(even){background:var(--chip-b)}
+.rword[data-syl="0"]{gap:0}
+.chipbtn{min-height:48px;padding:8px 18px;border-radius:999px;background:var(--card);color:var(--muted);box-shadow:0 3px 0 var(--shadow);font:500 17px var(--font-ui)}
+.chipbtn[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.rhint{margin:0;color:var(--muted);font:500 17px var(--font-ui);text-align:center}
+.choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(10px,2vw,18px);width:100%}
+.choice{aspect-ratio:1;max-height:34vh;width:100%;justify-self:center;border-radius:28px;background:var(--card);box-shadow:0 4px 0 var(--shadow);display:grid;place-items:center;font-size:clamp(50px,11vw,112px);line-height:1;transition:opacity .2s}
+.choice:active{transform:translateY(2px)}
+.choice.right{background:var(--good-soft);box-shadow:0 0 0 5px var(--good)}
+.choice.dim,.choice.wrong{opacity:.3}
+
+/* Obvestilo in konfeti */
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 74px);transform:translate(-50%,-12px);padding:12px 26px;border-radius:999px;background:var(--ink);color:var(--paper);font:600 24px var(--font-ui);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:40;white-space:nowrap}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:30}
+.confetto{position:absolute;clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+
+@keyframes pop{0%{transform:scale(.82)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
+@keyframes hop{0%,100%{transform:translateY(0)}40%{transform:translateY(-16px)}}
+@keyframes ring{0%{box-shadow:0 0 0 0 var(--star)}100%{box-shadow:0 0 0 16px transparent}}
+.pop{animation:pop .35s}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-speaker" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/></symbol>
+    <symbol id="i-speaker-off" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6"/><path d="M22 9l-5 6"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v5h5"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9L12 2.5z"/></symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 0 1 3 3L8 19l-4 1z"/><path d="M14 7l3 3"/></symbol>
+    <symbol id="i-tiles" viewBox="0 0 24 24"><rect x="2.5" y="7.5" width="5.5" height="9" rx="1.8"/><rect x="9.25" y="7.5" width="5.5" height="9" rx="1.8"/><rect x="16" y="7.5" width="5.5" height="9" rx="1.8"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.5C10 5 7 4.5 4 5v13c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5V5c-3-.5-6 0-8 1.5z"/><path d="M12 6.5v13"/></symbol>
+    <symbol id="i-letters" viewBox="0 0 24 24"><path d="M3 18L8 5l5 13"/><path d="M4.8 14h6.4"/><path d="M15 18v-6a3 3 0 0 1 6 0v6"/><path d="M15 15h6"/></symbol>
+  </defs>
+</svg>
+
+<div id="app">
+  <header class="top">
+    <h1 class="brand" aria-label="Črkarija"><span class="k">Č</span><span class="k">r</span><span class="k">k</span><span class="v">a</span><span class="k">r</span><span class="v">i</span><span class="k">j</span><span class="v">a</span></h1>
+    <div class="tools">
+      <button class="iconbtn" id="soundBtn" aria-label="Zvok je vklopljen" aria-pressed="true"><svg class="ic"><use href="#i-speaker"/></svg></button>
+      <div class="stars" id="starPill" role="status" aria-label="Zvezdice"><svg class="ic fill"><use href="#i-star"/></svg><span id="starCount">0</span></div>
+    </div>
+  </header>
+
+  <main id="stage">
+    <!-- ČRKE -->
+    <section class="view" id="view-letters">
+      <div class="letters">
+        <div class="lcard" id="lcard">
+          <div class="lkind" id="lKind" data-v="1"><i></i><span id="lKindText">samoglasnik</span></div>
+          <div class="lglyph vc" id="lGlyph" data-v="1">Aa</div>
+          <div class="lpic" id="lPic">🚗</div>
+          <div class="lword" id="lWord"></div>
+          <div class="lrow">
+            <button class="iconbtn" id="lPrev" aria-label="Prejšnja črka"><svg class="ic"><use href="#i-left"/></svg></button>
+            <button class="btn primary" id="lHear"><svg class="ic"><use href="#i-speaker"/></svg>Poslušaj</button>
+            <button class="iconbtn" id="lNext" aria-label="Naslednja črka"><svg class="ic"><use href="#i-right"/></svg></button>
+          </div>
+        </div>
+        <div class="lgrid" id="lgrid" role="group" aria-label="Abeceda"></div>
+      </div>
+    </section>
+
+    <!-- PIŠI -->
+    <section class="view write" id="view-write" hidden>
+      <div class="wbar">
+        <div class="seg" role="group" aria-label="Kaj pišem">
+          <button id="wmLetter" aria-pressed="true">Črke</button>
+          <button id="wmWord" aria-pressed="false">Besede</button>
+        </div>
+        <div class="tnav">
+          <button class="iconbtn" id="wPrev" aria-label="Prejšnja"><svg class="ic"><use href="#i-left"/></svg></button>
+          <div class="tlabel"><span class="tpic" id="wPic">🚗</span><span id="wLabel">Aa</span></div>
+          <button class="iconbtn" id="wNext" aria-label="Naslednja"><svg class="ic"><use href="#i-right"/></svg></button>
+        </div>
+        <div class="wact">
+          <button class="btn" id="wHear"><svg class="ic"><use href="#i-speaker"/></svg>Poslušaj</button>
+          <button class="btn" id="wClear"><svg class="ic"><use href="#i-undo"/></svg>Počisti</button>
+        </div>
+      </div>
+      <div class="board" id="board">
+        <canvas id="guide"></canvas>
+        <canvas id="ink" aria-label="Površina za pisanje"></canvas>
+        <div class="meter" id="meter" aria-hidden="true">
+          <svg class="ic fill"><use href="#i-star"/></svg><svg class="ic fill"><use href="#i-star"/></svg><svg class="ic fill"><use href="#i-star"/></svg>
+        </div>
+      </div>
+      <p class="wstatus" id="wStatus" role="status">Sledi črki s prstom ali s svinčnikom.</p>
+    </section>
+
+    <!-- SESTAVI -->
+    <section class="view" id="view-build" hidden>
+      <div class="build">
+        <button class="bpic" id="bPic" aria-label="Poslušaj besedo"><span id="bEmoji">🐟</span><span class="bhear"><svg class="ic"><use href="#i-speaker"/></svg></span></button>
+        <div class="slots" id="slots" aria-label="Sestavi besedo"></div>
+        <div class="tiles" id="tiles"></div>
+        <div class="actions"><button class="btn" id="bNext">Naprej<svg class="ic"><use href="#i-right"/></svg></button></div>
+      </div>
+    </section>
+
+    <!-- BERI -->
+    <section class="view" id="view-read" hidden>
+      <div class="read">
+        <div class="rtop">
+          <button class="rword" id="rWord" aria-label="Poslušaj besedo"></button>
+          <button class="chipbtn" id="sylToggle" aria-pressed="true">Zlogi</button>
+        </div>
+        <p class="rhint">Preberi besedo in tapni pravo sliko.</p>
+        <div class="choices" id="choices"></div>
+        <div class="actions"><button class="btn" id="rNext">Naprej<svg class="ic"><use href="#i-right"/></svg></button></div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabs" role="tablist" aria-label="Dejavnosti">
+    <button class="tab" role="tab" data-view="letters" aria-selected="true"><svg class="ic"><use href="#i-letters"/></svg>Črke</button>
+    <button class="tab" role="tab" data-view="write" aria-selected="false"><svg class="ic"><use href="#i-pencil"/></svg>Piši</button>
+    <button class="tab" role="tab" data-view="build" aria-selected="false"><svg class="ic"><use href="#i-tiles"/></svg>Sestavi</button>
+    <button class="tab" role="tab" data-view="read" aria-selected="false"><svg class="ic"><use href="#i-book"/></svg>Beri</button>
+  </nav>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="confetti" id="confetti" aria-hidden="true"></div>
+
+<script>
+(function(){
+'use strict';
+document.documentElement.lang='sl';
+var $=function(s,r){return (r||document).querySelector(s)};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+var FONT='"Andika","Chalkboard SE","Comic Sans MS",sans-serif';
+var VOWELS={A:1,E:1,I:1,O:1,U:1};
+var isV=function(ch){return !!VOWELS[ch.toUpperCase()]};
+var shuffle=function(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a};
+var css=function(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()};
+
+/* ---------- podatki ---------- */
+var LETTERS=[
+['A','a','avto','🚗'],['B','be','banana','🍌'],['C','ce','cvet','🌸'],['Č','če','čebela','🐝'],['D','de','drevo','🌳'],
+['E','e','enorog','🦄'],['F','ef','fant','👦'],['G','ge','gora','⛰️'],['H','ha','hiša','🏠'],['I','i','ideja','💡'],
+['J','je','jabolko','🍎'],['K','ka','kača','🐍'],['L','el','lev','🦁'],['M','em','muca','🐱'],['N','en','nos','👃'],
+['O','o','ovca','🐑'],['P','pe','pes','🐶'],['R','er','riba','🐟'],['S','es','sonce','☀️'],['Š','še','šola','🏫'],
+['T','te','torta','🎂'],['U','u','ura','⏰'],['V','ve','vlak','🚂'],['Z','ze','zajec','🐰'],['Ž','že','žaba','🐸']
+].map(function(a){var c=a[0].normalize('NFC');return {c:c,lo:c.toLowerCase(),n:a[1],w:a[2].normalize('NFC'),e:a[3],v:isV(c)}});
+
+var WORDS=[
+['ura','⏰','u-ra'],['pes','🐶','pes'],['nos','👃','nos'],['sir','🧀','sir'],['lev','🦁','lev'],['dež','🌧️','dež'],['miš','🐭','miš'],
+['mama','👩','ma-ma'],['riba','🐟','ri-ba'],['muca','🐱','mu-ca'],['luna','🌙','lu-na'],['roka','✋','ro-ka'],['žaba','🐸','ža-ba'],
+['kača','🐍','ka-ča'],['hiša','🏠','hi-ša'],['žoga','⚽','žo-ga'],['voda','💧','vo-da'],['kruh','🍞','kruh'],['slon','🐘','slon'],
+['konj','🐴','konj'],['cvet','🌸','cvet'],['ptič','🐦','ptič'],['vlak','🚂','vlak'],
+['ovca','🐑','ov-ca'],['krava','🐮','kra-va'],['sonce','☀️','son-ce'],['torta','🎂','tor-ta'],['avto','🚗','av-to'],['drevo','🌳','dre-vo'],
+['mleko','🥛','mle-ko'],['šola','🏫','šo-la'],['zajec','🐰','za-jec'],['medved','🐻','med-ved'],['zvezda','⭐','zve-zda'],
+['banana','🍌','ba-na-na'],['čebela','🐝','če-be-la'],['knjiga','📖','knji-ga'],['jabolko','🍎','ja-bol-ko']
+].map(function(a){return {w:a[0].normalize('NFC'),e:a[1],s:a[2].normalize('NFC').split('-')}})
+ .sort(function(a,b){return a.w.length-b.w.length});
+
+/* ---------- shramba ---------- */
+var store={
+  get:function(k,d){try{var v=localStorage.getItem('crkarija.'+k);return v===null?d:JSON.parse(v)}catch(e){return d}},
+  set:function(k,v){try{localStorage.setItem('crkarija.'+k,JSON.stringify(v))}catch(e){}}
+};
+var stars=store.get('stars',0), soundOn=store.get('sound',true);
+var starEl=$('#starCount'), starPill=$('#starPill');
+starEl.textContent=stars;
+
+/* ---------- zvok ---------- */
+var actx=null;
+function audio(){
+  if(!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}
+  if(actx&&actx.state==='suspended'){try{actx.resume()}catch(e){}}
+  return actx;
+}
+function tone(freq,t0,dur,type,vol){
+  if(!soundOn)return;var a=audio();if(!a)return;
+  var o=a.createOscillator(),g=a.createGain(),t=a.currentTime+t0;
+  o.type=type||'sine';o.frequency.value=freq;
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol||.15,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+dur+.05);
+}
+var sfx={
+  ok:function(){[523.25,659.25,783.99,1046.5].forEach(function(f,i){tone(f,i*.09,.3,'triangle',.17)})},
+  no:function(){tone(220,0,.18,'triangle',.13);tone(180,.12,.22,'triangle',.13)},
+  tap:function(){tone(660,0,.09,'sine',.1)}
+};
+var voice=null;
+function pickVoice(){
+  try{var vs=speechSynthesis.getVoices();
+    voice=vs.filter(function(v){return /^sl/i.test(v.lang)})[0]||vs.filter(function(v){return /^hr/i.test(v.lang)})[0]||null}catch(e){}
+}
+if('speechSynthesis' in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
+function speak(text){
+  if(!soundOn||!('speechSynthesis' in window))return;
+  try{
+    speechSynthesis.cancel();
+    var u=new SpeechSynthesisUtterance(text);
+    u.lang=voice?voice.lang:'sl-SI';if(voice)u.voice=voice;
+    u.rate=.8;u.pitch=1.05;speechSynthesis.speak(u);
+  }catch(e){}
+}
+window.addEventListener('pointerdown',function(){
+  audio();
+  try{if(window.speechSynthesis){var u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u)}}catch(e){}
+},{once:true,capture:true});
+
+var soundBtn=$('#soundBtn'),soundUse=$('use',soundBtn);
+function paintSound(){
+  soundBtn.setAttribute('aria-pressed',String(soundOn));
+  soundBtn.setAttribute('aria-label',soundOn?'Zvok je vklopljen':'Zvok je izklopljen');
+  soundUse.setAttribute('href',soundOn?'#i-speaker':'#i-speaker-off');
+}
+soundBtn.addEventListener('click',function(){
+  soundOn=!soundOn;store.set('sound',soundOn);
+  if(!soundOn&&window.speechSynthesis){try{speechSynthesis.cancel()}catch(e){}}
+  paintSound();if(soundOn)sfx.tap();
+});
+
+/* ---------- nagrade ---------- */
+var PRAISE=['Bravo!','Odlično!','Super!','Čestitke!','Zelo dobro!','Kar tako naprej!'];
+var praise=function(){return PRAISE[Math.floor(Math.random()*PRAISE.length)]};
+var toastEl=$('#toast'),toastT=0;
+function toast(msg){toastEl.textContent=msg;toastEl.classList.add('show');clearTimeout(toastT);toastT=setTimeout(function(){toastEl.classList.remove('show')},1900)}
+function addStar(){
+  stars++;store.set('stars',stars);starEl.textContent=stars;
+  starPill.classList.remove('pop');void starPill.offsetWidth;starPill.classList.add('pop');
+}
+var reduce=window.matchMedia('(prefers-reduced-motion: reduce)');
+var confettiEl=$('#confetti');
+function burst(){
+  if(reduce.matches)return;
+  var cols=[css('--star'),css('--vowel'),css('--cons'),css('--good')];
+  for(var i=0;i<28;i++){
+    var p=document.createElement('i');p.className='confetto';
+    var s=14+Math.random()*18;
+    p.style.cssText='width:'+s+'px;height:'+s+'px;background:'+cols[i%4]+';left:'+(50+(Math.random()-.5)*16)+'%;top:42%';
+    confettiEl.appendChild(p);
+    var a=Math.random()*Math.PI*2,d=140+Math.random()*280,dx=Math.cos(a)*d,dy=Math.sin(a)*d-120;
+    var an=p.animate([
+      {transform:'translate(-50%,-50%) scale(.2) rotate(0deg)',opacity:1},
+      {transform:'translate(calc(-50% + '+dx+'px),calc(-50% + '+dy+'px)) scale(1) rotate('+(Math.random()*360)+'deg)',opacity:1,offset:.6},
+      {transform:'translate(calc(-50% + '+dx+'px),calc(-50% + '+(dy+160)+'px)) scale(.8) rotate('+(Math.random()*540)+'deg)',opacity:0}
+    ],{duration:1300+Math.random()*500,easing:'cubic-bezier(.2,.7,.3,1)'});
+    an.onfinish=(function(el){return function(){el.remove()}})(p);
+  }
+}
+function celebrate(msg,giveStar){
+  sfx.ok();burst();toast(msg);if(giveStar!==false)addStar();
+}
+
+/* ---------- zavihki ---------- */
+var tabs=$$('.tab');
+var views={letters:$('#view-letters'),write:$('#view-write'),build:$('#view-build'),read:$('#view-read')};
+function show(name){
+  tabs.forEach(function(t){t.setAttribute('aria-selected',String(t.dataset.view===name))});
+  Object.keys(views).forEach(function(k){views[k].hidden=(k!==name)});
+  store.set('tab',name);
+  try{if(window.speechSynthesis)speechSynthesis.cancel()}catch(e){}
+  if(name==='write')requestAnimationFrame(function(){writer.resize()});
+}
+tabs.forEach(function(t){t.addEventListener('click',function(){sfx.tap();show(t.dataset.view)})});
+
+/* ---------- ČRKE ---------- */
+var lidx=0;
+var lgrid=$('#lgrid'),lGlyph=$('#lGlyph'),lKind=$('#lKind'),lKindText=$('#lKindText'),lPic=$('#lPic'),lWord=$('#lWord');
+var ltiles=LETTERS.map(function(L,i){
+  var b=document.createElement('button');
+  b.className='ltile';b.dataset.v=L.v?1:0;b.textContent=L.c+L.lo;b.setAttribute('aria-label','Črka '+L.c);
+  b.addEventListener('click',function(){selectLetter(i,true)});
+  lgrid.appendChild(b);return b;
+});
+function letterSay(L){return L.n+' kot '+L.w}
+function selectLetter(i,say){
+  lidx=(i+LETTERS.length)%LETTERS.length;
+  var L=LETTERS[lidx];
+  ltiles.forEach(function(t,k){t.setAttribute('aria-pressed',String(k===lidx))});
+  lGlyph.textContent=L.c+L.lo;lGlyph.dataset.v=L.v?1:0;
+  lKind.dataset.v=L.v?1:0;lKindText.textContent=L.v?'samoglasnik':'soglasnik';
+  lPic.textContent=L.e;
+  lWord.textContent='';
+  var b=document.createElement('b');b.className='vc';b.dataset.v=L.v?1:0;b.textContent=L.w.charAt(0);
+  lWord.appendChild(b);lWord.appendChild(document.createTextNode(L.w.slice(1)));
+  [lGlyph,lPic].forEach(function(el){el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop')});
+  if(say){sfx.tap();speak(letterSay(L))}
+}
+$('#lPrev').addEventListener('click',function(){selectLetter(lidx-1,true)});
+$('#lNext').addEventListener('click',function(){selectLetter(lidx+1,true)});
+$('#lHear').addEventListener('click',function(){speak(letterSay(LETTERS[lidx]))});
+
+/* ---------- PIŠI ---------- */
+var writer=(function(){
+  var board=$('#board'),guide=$('#guide'),ink=$('#ink');
+  var gx=guide.getContext('2d'),ix=ink.getContext('2d');
+  var label=$('#wLabel'),pic=$('#wPic'),status=$('#wStatus'),stars3=$$('#meter .ic'),nextBtn=$('#wNext');
+  var SC=.25,W=0,H=0,dpr=1,mode='letter',pos={letter:0,word:0},done=false;
+  var L=null,masks=null,brush=20,inkColor='#000';
+  var drawing=false,activeId=null,last=null,lastCheck=0,lastPen=0,earned={};
+  var MSG_START='Sledi črki s prstom ali s svinčnikom.';
+
+  function target(){
+    if(mode==='letter'){
+      var l=LETTERS[pos.letter];
+      return {parts:[l.c,l.lo],label:l.c+l.lo,pic:l.e,color:l.v?'--vowel':'--cons',thr:.6,say:letterSay(l),key:'l'+pos.letter,n:LETTERS.length};
+    }
+    var w=WORDS[pos.word];
+    return {parts:[w.w],label:w.w,pic:w.e,color:'--cons',thr:.55,say:w.w,key:'w'+pos.word,n:WORDS.length};
+  }
+  function computeLayout(t){
+    gx.save();gx.setTransform(1,0,0,1,0,0);gx.font='700 100px '+FONT;
+    var asc=(gx.measureText('d').actualBoundingBoxAscent||78)/100;
+    var xh=(gx.measureText('x').actualBoundingBoxAscent||50)/100;
+    var desc=(gx.measureText('g').actualBoundingBoxDescent||22)/100;
+    var gap=t.parts.length>1?.4:0;
+    var ws=t.parts.map(function(p){return gx.measureText(p).width/100});
+    var em=ws.reduce(function(a,b){return a+b},0)+gap*(t.parts.length-1);
+    gx.restore();
+    var fs=Math.min(H*.64/(asc+desc),W*.86/em,340);
+    var base=H/2+(asc-desc)*fs/2;
+    var x=(W-em*fs)/2,xs=[];
+    ws.forEach(function(w){xs.push(x);x+=(w+gap)*fs});
+    return {fs:fs,base:base,xs:xs,asc:asc,xh:xh,desc:desc,parts:t.parts};
+  }
+  function hline(y,dash,col,w){
+    gx.beginPath();gx.setLineDash(dash?[10,10]:[]);gx.strokeStyle=col;gx.lineWidth=w;
+    gx.moveTo(16,y);gx.lineTo(W-16,y);gx.stroke();
+  }
+  function drawGuide(){
+    if(!L)return;
+    gx.setTransform(dpr,0,0,dpr,0,0);gx.clearRect(0,0,W,H);
+    var rule=css('--rule'),edge=css('--guide-edge');
+    hline(L.base-L.asc*L.fs,false,rule,2);
+    hline(L.base-L.xh*L.fs,true,rule,2);
+    hline(L.base,false,edge,3);
+    hline(L.base+L.desc*L.fs,false,rule,2);
+    gx.setLineDash([]);
+    gx.font='700 '+L.fs+'px '+FONT;gx.textBaseline='alphabetic';gx.lineJoin='round';
+    gx.fillStyle=done?css('--good-soft'):css('--guide');
+    L.parts.forEach(function(p,i){gx.fillText(p,L.xs[i],L.base)});
+    gx.setLineDash([9,9]);gx.lineWidth=3;gx.strokeStyle=done?css('--good'):edge;
+    L.parts.forEach(function(p,i){gx.strokeText(p,L.xs[i],L.base)});
+    gx.setLineDash([]);
+  }
+  function buildMasks(){
+    var w=Math.max(1,Math.round(W*SC)),h=Math.max(1,Math.round(H*SC));
+    function mk(extra){
+      var cv=document.createElement('canvas');cv.width=w;cv.height=h;
+      var c=cv.getContext('2d',{willReadFrequently:true});
+      c.scale(SC,SC);c.font='700 '+L.fs+'px '+FONT;c.textBaseline='alphabetic';
+      c.fillStyle='#000';c.strokeStyle='#000';c.lineJoin='round';
+      L.parts.forEach(function(p,i){c.fillText(p,L.xs[i],L.base)});
+      if(extra){c.lineWidth=extra;L.parts.forEach(function(p,i){c.strokeText(p,L.xs[i],L.base)})}
+      return c.getImageData(0,0,w,h).data;
+    }
+    var letter=mk(0),dil=mk(L.fs*.3),total=0;
+    for(var i=3;i<letter.length;i+=4){if(letter[i]>127)total++}
+    var tmp=document.createElement('canvas');tmp.width=w;tmp.height=h;
+    var tctx=tmp.getContext('2d',{willReadFrequently:true});
+    tctx.imageSmoothingEnabled=true;tctx.imageSmoothingQuality='high';
+    masks={w:w,h:h,letter:letter,dil:dil,total:total,tctx:tctx};
+  }
+  function analyse(){
+    var m=masks;m.tctx.clearRect(0,0,m.w,m.h);
+    m.tctx.drawImage(ink,0,0,ink.width,ink.height,0,0,m.w,m.h);
+    var d=m.tctx.getImageData(0,0,m.w,m.h).data,cov=0,inkN=0,inside=0;
+    for(var i=3;i<d.length;i+=4){
+      var k=d[i]>40;
+      if(k&&m.letter[i]>127)cov++;
+      if(k){inkN++;if(m.dil[i]>127)inside++}
+    }
+    return {cov:m.total?cov/m.total:0,prec:inkN?inside/inkN:1,inkN:inkN};
+  }
+  function setStatus(s){if(status.textContent!==s)status.textContent=s}
+  function check(){
+    if(!masks||done)return;
+    var t=target(),r=analyse(),p=Math.min(1,r.cov/t.thr);
+    var lit=p>=1?3:p>=.67?2:p>=.34?1:0;
+    if(r.prec<.55&&lit>1)lit=1;
+    stars3.forEach(function(s,i){s.classList.toggle('on',i<lit)});
+    if(p>=1&&r.prec>=.55){success(t)}
+    else if(r.cov>t.thr*.8&&r.prec<.55){setStatus('Piši samo po črki. Pritisni Počisti in poskusi znova.')}
+    else if(p>=.34){setStatus('Dobro gre, nadaljuj!')}
+  }
+  function success(t){
+    done=true;stars3.forEach(function(s){s.classList.add('on')});
+    drawGuide();
+    var first=!earned[t.key];earned[t.key]=true;
+    setStatus('Odlično! Pritisni puščico naprej.');
+    celebrate(praise(),first);
+    setTimeout(function(){speak(t.say)},500);
+    nextBtn.classList.remove('nudge');void nextBtn.offsetWidth;nextBtn.classList.add('nudge');
+  }
+  function clearInk(){
+    ix.setTransform(1,0,0,1,0,0);ix.clearRect(0,0,ink.width,ink.height);ix.setTransform(dpr,0,0,dpr,0,0);
+    stars3.forEach(function(s){s.classList.remove('on')});
+  }
+  function setTarget(){
+    var t=target();done=false;
+    label.textContent=t.label;pic.textContent=t.pic;inkColor=css(t.color);
+    setStatus(MSG_START);nextBtn.classList.remove('nudge');
+    clearInk();
+    if(W){L=computeLayout(t);buildMasks();drawGuide()}
+  }
+  function resize(){
+    var r=board.getBoundingClientRect(),w=Math.round(r.width),h=Math.round(r.height);
+    if(w<50||h<50)return;
+    var nd=Math.min(window.devicePixelRatio||1,2.5);
+    if(w===W&&h===H&&nd===dpr)return;
+    W=w;H=h;dpr=nd;
+    [guide,ink].forEach(function(cv){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)});
+    ix.setTransform(dpr,0,0,dpr,0,0);
+    stars3.forEach(function(s){s.classList.toggle('on',done)});
+    L=computeLayout(target());buildMasks();drawGuide();
+  }
+  function refresh(){
+    if(!W)return;
+    L=computeLayout(target());buildMasks();drawGuide();
+  }
+  function pt(e){
+    var r=ink.getBoundingClientRect();
+    return {x:(e.clientX-r.left)*(W/r.width),y:(e.clientY-r.top)*(H/r.height)};
+  }
+  function brushSet(){
+    brush=Math.max(14,L.fs*.12);
+    ix.lineWidth=brush;ix.lineCap='round';ix.lineJoin='round';ix.strokeStyle=inkColor;ix.fillStyle=inkColor;
+  }
+  ink.addEventListener('touchstart',function(e){e.preventDefault()},{passive:false});
+  ink.addEventListener('pointerdown',function(e){
+    if(!L||activeId!==null)return;
+    if(e.pointerType==='pen'){lastPen=performance.now()}
+    else if(e.pointerType==='touch'&&performance.now()-lastPen<4000)return;
+    e.preventDefault();
+    activeId=e.pointerId;
+    try{ink.setPointerCapture(e.pointerId)}catch(_){}
+    drawing=true;inkColor=css(target().color);brushSet();
+    last=pt(e);ix.beginPath();ix.arc(last.x,last.y,brush/2,0,Math.PI*2);ix.fill();
+  });
+  ink.addEventListener('pointermove',function(e){
+    if(!drawing||e.pointerId!==activeId)return;
+    e.preventDefault();
+    if(e.pointerType==='pen')lastPen=performance.now();
+    var evs=(e.getCoalescedEvents&&e.getCoalescedEvents())||[];
+    if(!evs.length)evs=[e];
+    for(var i=0;i<evs.length;i++){
+      var p=pt(evs[i]);ix.beginPath();ix.moveTo(last.x,last.y);ix.lineTo(p.x,p.y);ix.stroke();last=p;
+    }
+    var now=performance.now();
+    if(now-lastCheck>180){lastCheck=now;check()}
+  });
+  function end(e){
+    if(e.pointerId!==activeId)return;
+    drawing=false;activeId=null;check();
+  }
+  ink.addEventListener('pointerup',end);
+  ink.addEventListener('pointercancel',end);
+
+  function go(d){
+    var n=target().n;
+    pos[mode]=(pos[mode]+d+n)%n;
+    sfx.tap();setTarget();
+  }
+  function setMode(m){
+    if(m===mode)return;
+    mode=m;
+    $('#wmLetter').setAttribute('aria-pressed',String(m==='letter'));
+    $('#wmWord').setAttribute('aria-pressed',String(m==='word'));
+    sfx.tap();setTarget();
+  }
+  $('#wmLetter').addEventListener('click',function(){setMode('letter')});
+  $('#wmWord').addEventListener('click',function(){setMode('word')});
+  $('#wPrev').addEventListener('click',function(){go(-1)});
+  nextBtn.addEventListener('click',function(){go(1)});
+  $('#wHear').addEventListener('click',function(){speak(target().say)});
+  $('#wClear').addEventListener('click',function(){
+    var wasDone=done;done=false;clearInk();setStatus(MSG_START);
+    if(wasDone)drawGuide();
+  });
+  if(window.ResizeObserver){new ResizeObserver(resize).observe(board)}
+  window.addEventListener('resize',resize);
+  setTarget();
+  return {resize:resize,refresh:refresh,redraw:drawGuide};
+})();
+
+/* ---------- SESTAVI ---------- */
+var build=(function(){
+  var slotsEl=$('#slots'),tilesEl=$('#tiles'),emoji=$('#bEmoji'),nextBtn=$('#bNext');
+  var idx=store.get('buildIdx',0)%WORDS.length,w=null,chars=[],placed=0,wrong=0,finished=false,slots=[];
+  function load(){
+    w=WORDS[idx];chars=Array.from(w.w);placed=0;wrong=0;finished=false;
+    emoji.textContent=w.e;
+    while(slotsEl.firstChild)slotsEl.removeChild(slotsEl.firstChild);
+    while(tilesEl.firstChild)tilesEl.removeChild(tilesEl.firstChild);
+    slots=chars.map(function(ch){
+      var s=document.createElement('div');s.className='slot vc';s.dataset.v=isV(ch)?1:0;slotsEl.appendChild(s);return s;
+    });
+    var order=shuffle(chars);
+    for(var k=0;k<8&&order.join('')===w.w;k++)order=shuffle(chars);
+    order.forEach(function(ch){
+      var b=document.createElement('button');
+      b.className='tile vc';b.dataset.ch=ch;b.dataset.v=isV(ch)?1:0;b.textContent=ch;b.setAttribute('aria-label','Črka '+ch);
+      b.addEventListener('click',function(){tap(b)});
+      tilesEl.appendChild(b);
+    });
+    nextBtn.classList.remove('primary');
+  }
+  function tap(b){
+    if(finished||b.classList.contains('used'))return;
+    if(b.dataset.ch===chars[placed]){
+      var s=slots[placed];
+      s.textContent=b.dataset.ch;s.classList.add('filled','pop');
+      b.classList.add('used');
+      tone(520+placed*70,0,.18,'triangle',.16);
+      placed++;wrong=0;
+      $$('.hint',tilesEl).forEach(function(x){x.classList.remove('hint')});
+      if(placed===chars.length)finish();
+    }else{
+      wrong++;
+      b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake');
+      sfx.no();
+      if(wrong>=2){
+        var h=$$('.tile',tilesEl).filter(function(t){return !t.classList.contains('used')&&t.dataset.ch===chars[placed]})[0];
+        if(h)h.classList.add('hint');
+      }
+    }
+  }
+  function finish(){
+    finished=true;
+    slots.forEach(function(s,i){s.style.animationDelay=(i*90)+'ms';s.classList.remove('pop');s.classList.add('hop')});
+    nextBtn.classList.add('primary');
+    celebrate(praise());
+    var word=w.w;setTimeout(function(){speak(word)},500);
+  }
+  function next(){idx=(idx+1)%WORDS.length;store.set('buildIdx',idx);load()}
+  nextBtn.addEventListener('click',function(){sfx.tap();next()});
+  $('#bPic').addEventListener('click',function(){speak(w.w)});
+  load();
+  return {load:load};
+})();
+
+/* ---------- BERI ---------- */
+var read=(function(){
+  var wordEl=$('#rWord'),choicesEl=$('#choices'),nextBtn=$('#rNext'),sylBtn=$('#sylToggle');
+  var ok=store.get('readOk',0),syl=store.get('syl',true),cur=null,lastW=null,solved=false;
+  function pool(){
+    var max=Math.min(7,3+Math.floor(ok/3));
+    return WORDS.filter(function(x){return x.w.length<=max});
+  }
+  function renderWord(){
+    while(wordEl.firstChild)wordEl.removeChild(wordEl.firstChild);
+    wordEl.dataset.syl=syl?1:0;
+    (syl?cur.s:[cur.w]).forEach(function(s){
+      var sp=document.createElement('span');sp.className='syl';sp.textContent=s;wordEl.appendChild(sp);
+    });
+    sylBtn.setAttribute('aria-pressed',String(syl));
+  }
+  function choose(b,o){
+    if(solved||b.disabled)return;
+    if(o===cur){
+      solved=true;b.classList.add('right');
+      $$('.choice',choicesEl).forEach(function(x){if(x!==b)x.classList.add('dim')});
+      ok++;store.set('readOk',ok);
+      nextBtn.classList.add('primary');
+      celebrate(praise());
+      var word=cur.w;setTimeout(function(){speak(word)},500);
+    }else{
+      b.disabled=true;b.classList.add('wrong','shake');
+      sfx.no();toast('Poskusi še enkrat.');
+    }
+  }
+  function next(){
+    var p=pool().filter(function(x){return x!==lastW});
+    cur=p[Math.floor(Math.random()*p.length)];lastW=cur;solved=false;
+    nextBtn.classList.remove('primary');
+    renderWord();
+    var others=shuffle(pool().filter(function(x){return x!==cur})).slice(0,2);
+    while(choicesEl.firstChild)choicesEl.removeChild(choicesEl.firstChild);
+    shuffle([cur].concat(others)).forEach(function(o,i){
+      var b=document.createElement('button');
+      b.className='choice';b.textContent=o.e;b.setAttribute('aria-label','Slika '+(i+1));
+      b.addEventListener('click',function(){choose(b,o)});
+      choicesEl.appendChild(b);
+    });
+  }
+  wordEl.addEventListener('click',function(){speak(cur.w)});
+  sylBtn.addEventListener('click',function(){syl=!syl;store.set('syl',syl);renderWord();sfx.tap()});
+  nextBtn.addEventListener('click',function(){sfx.tap();next()});
+  next();
+  return {next:next};
+})();
+
+/* ---------- pisave in tema ---------- */
+function onFonts(){writer.refresh()}
+if(document.fonts&&document.fonts.load){
+  Promise.all([
+    document.fonts.load('700 100px Andika','AaČčŠšŽžBbCc'),
+    document.fonts.load('600 40px Fredoka','Črkarija')
+  ]).then(onFonts,onFonts);
+  if(document.fonts.ready)document.fonts.ready.then(onFonts);
+}
+try{
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){writer.redraw()});
+  new MutationObserver(function(){writer.redraw()}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+}catch(e){}
+
+/* ---------- zagon ---------- */
+paintSound();
+selectLetter(0,false);
+var startTab=store.get('tab','letters');
+show(views[startTab]?startTab:'letters');
+})();
+</script>
